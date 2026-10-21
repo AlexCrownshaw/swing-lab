@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Swing Lab">
+<title>Swing Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#eef2ec; --surface:#ffffff; --surface-2:#e2e9e0; --line:#c9d4c6;
+  --text:#12201a; --muted:#56665c; --green:#0f3d2e; --green-ink:#ffffff;
+  --flag:#f2c230; --flag-ink:#1a1400; --danger:#c2402b;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#08130e; --surface:#10221a; --surface-2:#173026; --line:#24443a;
+    --text:#e8f0ea; --muted:#93a89b; --green:#3fae7c; --green-ink:#04130c;
+    --flag:#f5cb45; --flag-ink:#1a1400; --danger:#ff7a63;
+    color-scheme:dark;
+  }
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);
+  font:400 16px/1.45 "Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  padding:0 max(14px,env(safe-area-inset-left)) 24px max(14px,env(safe-area-inset-right));}
+button,select,label.btn{font:inherit;color:inherit}
+.num,h1,.metric b,.readout{font-family:"Barlow Condensed","Arial Narrow",system-ui,sans-serif}
+header{display:flex;align-items:center;justify-content:space-between;padding:12px 2px 10px;gap:12px}
+h1{margin:0;font-size:30px;font-weight:700;letter-spacing:.01em;line-height:1}
+h1 small{display:block;font:500 13px/1.3 "Barlow",system-ui,sans-serif;color:var(--muted);letter-spacing:0;margin-top:3px}
+.seg{display:inline-flex;background:var(--surface-2);border-radius:999px;padding:3px}
+.seg button{border:0;background:transparent;padding:6px 12px;border-radius:999px;font-weight:600;font-size:14px;cursor:pointer;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.15)}
+
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 16px;
+  border-radius:12px;border:1px solid var(--line);background:var(--surface);font-weight:600;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;user-select:none}
+.btn:disabled{opacity:.4;cursor:default}
+.btn.primary{background:var(--green);color:var(--green-ink);border-color:var(--green)}
+.btn.flag{background:var(--flag);color:var(--flag-ink);border-color:var(--flag)}
+.btn.rec{background:var(--danger);color:#fff;border-color:var(--danger)}
+.btn.icon{width:44px;padding:0;font-size:18px}
+.btn:focus-visible,.chip:focus-visible,.seg button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--flag);outline-offset:2px}
+.grow{flex:1}
+
+#stageWrap{margin:12px 0 10px;display:flex;justify-content:center}
+#stage{position:relative;background:#000;border-radius:16px;overflow:hidden;display:none}
+#stage video,#stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+#stage video{object-fit:fill}
+#overlay{pointer-events:none;touch-action:auto}
+#overlay.drawing{pointer-events:auto;touch-action:none;cursor:crosshair}
+#progress{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+  background:rgba(4,12,8,.6);color:#fff;font-weight:600}
+#progress .bar{width:60%;height:8px;border-radius:99px;background:rgba(255,255,255,.25);overflow:hidden}
+#progress .bar i{display:block;height:100%;width:0;background:var(--flag)}
+#recDot{position:absolute;top:12px;left:12px;display:none;align-items:center;gap:6px;background:rgba(0,0,0,.55);
+  color:#fff;border-radius:99px;padding:4px 10px;font-weight:600;font-size:14px}
+#recDot::before{content:"";width:10px;height:10px;border-radius:50%;background:#ff3b30}
+
+#empty{width:100%;background:var(--surface);border:1px dashed var(--line);border-radius:16px;padding:22px 18px}
+#empty h2{margin:0 0 6px;font:700 24px/1.15 "Barlow Condensed",system-ui,sans-serif}
+#empty p{margin:0 0 14px;color:var(--muted);max-width:60ch}
+#empty ul{margin:14px 0 0;padding-left:18px;color:var(--muted);font-size:15px}
+#empty li{margin:3px 0}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px;margin-top:10px}
+.transport input[type=range]{flex:1;min-width:120px;accent-color:var(--green);height:32px}
+.readout{font-size:17px;font-weight:600;color:var(--muted);min-width:7.5em;text-align:right}
+select{min-height:44px;border-radius:12px;border:1px solid var(--line);background:var(--surface);padding:0 10px;font-weight:600}
+
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:transparent;border-radius:999px;padding:7px 12px;font-weight:600;font-size:14px;cursor:pointer;color:var(--muted)}
+.chip[aria-pressed="true"]{background:var(--green);border-color:var(--green);color:var(--green-ink)}
+.chip.tool[aria-pressed="true"]{background:var(--flag);border-color:var(--flag);color:var(--flag-ink)}
+.phases .btn{min-height:38px;padding:0 12px;font-size:14px}
+.hint{font-size:13px;color:var(--muted);margin:8px 2px 0}
+
+.metrics{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:10px}
+.metric{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+.metric span{display:block;font-size:13px;color:var(--muted);font-weight:500}
+.metric b{display:block;font-size:34px;line-height:1.05;font-weight:700}
+.metric em{font-style:normal;font-size:13px;color:var(--muted)}
+.metric.alert b{color:var(--danger)}
+
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);
+  background:var(--text);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:600;font-size:15px;
+  max-width:90vw;display:none;z-index:20}
+.hidden{display:none!important}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Swing Lab<small>Pose skeleton for your golf swing</small></h1>
+  <div class="seg" role="group" aria-label="Golfer handedness">
+    <button id="handR" aria-pressed="true">Right</button>
+    <button id="handL" aria-pressed="false">Left</button>
+  </div>
+</header>
+
+<div class="row" id="sourceRow">
+  <label class="btn primary grow" for="fileInput">Upload swing</label>
+  <input id="fileInput" type="file" accept="video/*" class="hidden">
+  <button class="btn grow" id="liveBtn">Use camera</button>
+</div>
+
+<div id="stageWrap">
+  <div id="empty">
+    <h2>Load a swing to start</h2>
+    <p>Pick a video from your camera roll, or film one live. Swing Lab tracks 33 body points on every frame and draws the skeleton, angles and hand path over it.</p>
+    <ul>
+      <li>Film face-on or down-the-line with your whole body and club in frame.</li>
+      <li>Prop the phone at hip height and keep it still.</li>
+      <li>Trim the clip to just the swing for faster analysis.</li>
+    </ul>
+  </div>
+  <div id="stage">
+    <video id="video" playsinline muted preload="auto"></video>
+    <canvas id="overlay"></canvas>
+    <div id="recDot">REC</div>
+    <div id="progress"><div id="progressText">Analyzing…</div><div class="bar"><i id="progressBar"></i></div>
+      <button class="btn" id="cancelBtn" style="color:var(--text)">Cancel</button></div>
+  </div>
+</div>
+
+<!-- Live camera controls -->
+<div class="panel hidden" id="livePanel">
+  <div class="row">
+    <button class="btn rec grow" id="recBtn">Start recording</button>
+    <button class="btn" id="exitLiveBtn">Close camera</button>
+  </div>
+  <p class="hint">The live skeleton is a preview. Record your swing to review it frame by frame.</p>
+</div>
+
+<!-- Video review controls -->
+<div class="hidden" id="reviewPanel">
+  <div class="panel transport">
+    <div class="row">
+      <button class="btn icon" id="prevBtn" aria-label="Previous frame">‹</button>
+      <button class="btn icon" id="playBtn" aria-label="Play">▶</button>
+      <button class="btn icon" id="nextBtn" aria-label="Next frame">›</button>
+      <input type="range" id="scrub" min="0" max="1" step="0.001" value="0" aria-label="Scrub video">
+    </div>
+    <div class="row" style="margin-top:8px">
+      <select id="speed" aria-label="Playback speed">
+        <option value="0.25">¼ speed</option>
+        <option value="0.5" selected>½ speed</option>
+        <option value="1">Full speed</option>
+      </select>
+      <span class="grow"></span>
+      <span class="readout num" id="readout">0.00 s</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="row">
+      <button class="btn flag grow" id="analyzeBtn">Analyze swing</button>
+      <select id="fpsSel" aria-label="Frames to analyze per second">
+        <option value="30" selected>30 frames/s</option>
+        <option value="60">60 frames/s</option>
+      </select>
+    </div>
+    <div class="row phases" style="margin-top:10px">
+      <button class="btn" data-phase="address" disabled>Address</button>
+      <button class="btn" data-phase="top" disabled>Top</button>
+      <button class="btn" data-phase="impact" disabled>Impact</button>
+      <button class="btn" data-phase="finish" disabled>Finish</button>
+    </div>
+    <p class="hint" id="analyzeHint">Analyze once, then scrub and play back with the skeleton locked to every frame.</p>
+  </div>
+
+  <div class="panel">
+    <div class="chips" id="chips">
+      <button class="chip" data-ov="skeleton" aria-pressed="true">Skeleton</button>
+      <button class="chip" data-ov="angles" aria-pressed="true">Angles</button>
+      <button class="chip" data-ov="path" aria-pressed="true">Hand path</button>
+      <button class="chip" data-ov="head" aria-pressed="true">Head</button>
+      <button class="chip" data-ov="spine" aria-pressed="true">Spine line</button>
+      <button class="chip tool" id="drawBtn" aria-pressed="false">Draw lines</button>
+      <button class="chip" id="clearBtn">Clear lines</button>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn grow" id="setAddrBtn" disabled>Set this frame as address</button>
+      <button class="btn grow" id="saveBtn">Save frame</button>
+    </div>
+  </div>
+
+  <div class="metrics" id="metrics"></div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script type="module">
+import { PoseLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+
+const WASM  = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm";
+const MODEL = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task";
+
+const $ = id => document.getElementById(id);
+const video = $("video"), canvas = $("overlay"), ctx = canvas.getContext("2d");
+
+const state = {
+  mode: "idle",            // idle | video | live
+  frames: [], fps: 30, analyzed: false,
+  addressIdx: 0, phases: {},
+  rightHanded: true,
+  ov: { skeleton:true, angles:true, path:true, head:true, spine:true },
+  drawMode: false, lines: [], drag: null,
+  liveLm: null, lastIdx: -1
+};
+let landmarker = null, landmarkerPromise = null, lastTs = 0;
+let busy = false, cancelAnalysis = false, currentUrl = null;
+let stream = null, recorder = null, chunks = [], discardRecording = false, recStart = 0;
+
+/* ---------- Helpers ---------- */
+const clamp = (v,a,b) => Math.min(b, Math.max(a, v));
+const nextTs = t => (lastTs = Math.max(lastTs + 1, Math.round(t)));
+function toast(msg, ms = 2600){
+  const t = $("toast"); t.textContent = msg; t.style.display = "block";
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.style.display = "none", ms);
+}
+function side(){
+  const L = { sh:11, el:13, wr:15, hip:23, kn:25, an:27 };
+  const R = { sh:12, el:14, wr:16, hip:24, kn:26, an:28 };
+  return state.rightHanded ? { lead:L, trail:R } : { lead:R, trail:L };
+}
+
+/* ---------- Model ---------- */
+function getLandmarker(){
+  if (landmarker) return Promise.resolve(landmarker);
+  if (landmarkerPromise) return landmarkerPromise;
+  landmarkerPromise = (async () => {
+    const vision = await FilesetResolver.forVisionTasks(WASM);
+    const opts = delegate => ({
+      baseOptions: { modelAssetPath: MODEL, delegate },
+      runningMode: "VIDEO", numPoses: 1,
+      minPoseDetectionConfidence: 0.5, minPosePresenceConfidence: 0.5, minTrackingConfidence: 0.5
+    });
+    try { landmarker = await PoseLandmarker.createFromOptions(vision, opts("GPU")); }
+    catch (e) { landmarker = await PoseLandmarker.createFromOptions(vision, opts("CPU")); }
+    return landmarker;
+  })().catch(err => { landmarkerPromise = null; throw err; });
+  return landmarkerPromise;
+}
+getLandmarker().catch(() => {}); // warm up in the background
+
+/* ---------- Layout ---------- */
+function sizeStage(){
+  const w = video.videoWidth, h = video.videoHeight;
+  if (!w || !h) return;
+  const stage = $("stage");
+  stage.style.display = "block"; $("empty").style.display = "none";
+  const availW = $("stageWrap").clientWidth;
+  const availH = Math.max(260, window.innerHeight * 0.6);
+  const s = Math.min(availW / w, availH / h);
+  stage.style.width = Math.round(w * s) + "px";
+  stage.style.height = Math.round(h * s) + "px";
+  const k = Math.min(1, 1440 / Math.max(w, h));
+  canvas.width = Math.round(w * k); canvas.height = Math.round(h * k);
+}
+window.addEventListener("resize", sizeStage);
+
+function updateUI(){
+  $("livePanel").classList.toggle("hidden", state.mode !== "live");
+  $("reviewPanel").classList.toggle("hidden", state.mode !== "video");
+  $("sourceRow").classList.toggle("hidden", state.mode === "live");
+  document.querySelectorAll("[data-phase]").forEach(b => b.disabled = !state.analyzed);
+  $("setAddrBtn").disabled = !state.analyzed;
+  $("analyzeBtn").textContent = state.analyzed ? "Analyze again" : "Analyze swing";
+  $("analyzeBtn").className = "btn grow " + (state.analyzed ? "" : "flag");
+  $("analyzeHint").textContent = state.analyzed
+    ? "Top and impact are found from your hand position, so check them by eye."
+    : "Analyze once, then scrub and play back with the skeleton locked to every frame.";
+  renderMetrics(true);
+}
+
+/* ---------- Loading video ---------- */
+$("fileInput").addEventListener("change", e => {
+  const f = e.target.files[0];
+  if (f) loadVideo(URL.createObjectURL(f));
+  e.target.value = "";
+});
+
+function seekTo(t){
+  return new Promise(res => {
+    let done = false;
+    const fin = () => { if (done) return; done = true; video.removeEventListener("seeked", fin); res(); };
+    video.addEventListener("seeked", fin);
+    video.currentTime = t;
+    setTimeout(fin, 1500);
+  });
+}
+
+function loadVideo(url){
+  stopLive();
+  if (currentUrl) URL.revokeObjectURL(currentUrl);
+  currentUrl = url;
+  Object.assign(state, { frames:[], analyzed:false, lines:[], phases:{}, addressIdx:0, lastIdx:-1 });
+  video.srcObject = null;
+  video.muted = true; video.playsInline = true;
+  video.src = url;
+  video.onloadedmetadata = async () => {
+    if (!isFinite(video.duration)) { await seekTo(1e7); await seekTo(0); }
+    sizeStage();
+    $("scrub").max = video.duration;
+    video.playbackRate = parseFloat($("speed").value);
+    state.mode = "video";
+    updateUI();
+  };
+  video.load();
+}
+
+/* ---------- Analysis ---------- */
+async function analyze(){
+  if (state.mode !== "video" || busy) return;
+  busy = true; cancelAnalysis = false;
+  video.pause();
+  const prog = $("progress");
+  prog.style.display = "flex"; $("progressText").textContent = "Loading pose model…"; $("progressBar").style.width = "0%";
+  let lm;
+  try { lm = await getLandmarker(); }
+  catch (e) { prog.style.display = "none"; busy = false; toast("Couldn’t load the pose model. Check your connection and try again."); return; }
+
+  try { await video.play(); } catch (e) {}
+  video.pause();
+
+  const fps = parseInt($("fpsSel").value, 10);
+  const dur = video.duration;
+  const n = Math.max(1, Math.floor(dur * fps));
+  const raw = new Array(n).fill(null);
+  for (let i = 0; i < n; i++){
+    if (cancelAnalysis) break;
+    await seekTo(Math.min(dur - 0.001, i / fps + 0.0005));
+    try {
+      const r = lm.detectForVideo(video, nextTs(lastTs + 1000 / fps));
+      const p = r.landmarks && r.landmarks[0];
+      raw[i] = p ? p.map(q => ({ x:q.x, y:q.y, v:q.visibility ?? 1 })) : null;
+    } catch (e) { raw[i] = null; }
+    if (i % 2 === 0 || i === n - 1){
+      $("progressText").textContent = `Analyzing frame ${i + 1} of ${n}`;
+      $("progressBar").style.width = ((i + 1) / n * 100).toFixed(1) + "%";
+    }
+  }
+  prog.style.display = "none"; busy = false;
+  if (cancelAnalysis) { toast("Analysis canceled."); return; }
+
+  state.frames = smooth(raw);
+  state.fps = fps;
+  state.analyzed = state.frames.some(Boolean);
+  if (!state.analyzed) { toast("No golfer found. Make sure your whole body is in frame."); updateUI(); return; }
+  state.addressIdx = state.frames.findIndex(Boolean);
+  detectPhases();
+  state.lastIdx = -1;
+  await seekTo(0);
+  updateUI();
+  toast("Swing analyzed. Scrub or press play.");
+}
+$("analyzeBtn").onclick = analyze;
+$("cancelBtn").onclick = () => cancelAnalysis = true;
+
+// Light 3-tap smoothing to reduce jitter without blurring the downswing
+function smooth(fr){
+  return fr.map((f, i) => {
+    if (!f) return null;
+    const a = fr[i - 1], b = fr[i + 1];
+    if (!a || !b) return f;
+    return f.map((p, j) => ({
+      x: 0.25 * a[j].x + 0.5 * p.x + 0.25 * b[j].x,
+      y: 0.25 * a[j].y + 0.5 * p.y + 0.25 * b[j].y,
+      v: p.v
+    }));
+  });
+}
+
+function detectPhases(){
+  const fr = state.frames, wr = side().lead.wr, a = state.addressIdx;
+  const addr = fr[a];
+  let top = a, topY = Infinity;
+  fr.forEach((f, i) => { if (f && i >= a && f[wr].y < topY) { topY = f[wr].y; top = i; } });
+  let impact = top, best = Infinity;
+  for (let i = top + 1; i < fr.length; i++){
+    const f = fr[i]; if (!f) continue;
+    const d = Math.hypot(f[wr].x - addr[wr].x, f[wr].y - addr[wr].y);
+    if (d < best) { best = d; impact = i; }
+    else if (best < 0.12 && d > best + 0.12) break;
+  }
+  let finish = fr.length - 1; while (finish > 0 && !fr[finish]) finish--;
+  state.phases = { address: a, top, impact, finish };
+}
+document.querySelectorAll("[data-phase]").forEach(b => b.onclick = () => {
+  const i = state.phases[b.dataset.phase];
+  if (i != null) { video.pause(); seekTo(i / state.fps + 0.0005); }
+});
+$("setAddrBtn").onclick = () => {
+  const i = currentIdx();
+  if (!state.frames[i]) return toast("No pose on this frame.");
+  state.addressIdx = i; detectPhases(); state.lastIdx = -1;
+  toast("Address set to this frame.");
+};
+
+/* ---------- Transport ---------- */
+const currentIdx = () => clamp(Math.round(video.currentTime * state.fps), 0, Math.max(0, state.frames.length - 1));
+$("playBtn").onclick = () => {
+  if (video.paused) { if (video.ended) video.currentTime = 0; video.play().catch(() => {}); }
+  else video.pause();
+};
+video.addEventListener("play", () => { $("playBtn").textContent = "❚❚"; $("playBtn").setAttribute("aria-label","Pause"); });
+video.addEventListener("pause", () => { $("playBtn").textContent = "▶"; $("playBtn").setAttribute("aria-label","Play"); });
+function step(d){
+  video.pause();
+  const fps = state.analyzed ? state.fps : 30;
+  const i = Math.round(video.currentTime * fps) + d;
+  video.currentTime = clamp(i / fps + 0.0005, 0, video.duration - 0.001);
+}
+$("prevBtn").onclick = () => step(-1);
+$("nextBtn").onclick = () => step(1);
+let scrubbing = false;
+$("scrub").addEventListener("input", e => { scrubbing = true; video.pause(); video.currentTime = parseFloat(e.target.value); });
+$("scrub").addEventListener("change", () => scrubbing = false);
+$("speed").onchange = e => video.playbackRate = parseFloat(e.target.value);
+
+/* ---------- Handedness & overlays ---------- */
+function setHand(right){
+  state.rightHanded = right;
+  $("handR").setAttribute("aria-pressed", right); $("handL").setAttribute("aria-pressed", !right);
+  if (state.analyzed) detectPhases();
+  state.lastIdx = -1;
+}
+$("handR").onclick = () => setHand(true);
+$("handL").onclick = () => setHand(false);
+document.querySelectorAll("[data-ov]").forEach(b => b.onclick = () => {
+  const k = b.dataset.ov; state.ov[k] = !state.ov[k]; b.setAttribute("aria-pressed", state.ov[k]);
+});
+
+/* ---------- Drawing tool ---------- */
+$("drawBtn").onclick = () => {
+  state.drawMode = !state.drawMode;
+  $("drawBtn").setAttribute("aria-pressed", state.drawMode);
+  canvas.classList.toggle("drawing", state.drawMode);
+  if (state.drawMode) { video.pause(); toast("Drag on the video to draw a line."); }
+};
+$("clearBtn").onclick = () => state.lines = [];
+function normPt(e){
+  const r = canvas.getBoundingClientRect();
+  return { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height };
+}
+canvas.addEventListener("pointerdown", e => {
+  if (!state.drawMode) return;
+  canvas.setPointerCapture(e.pointerId);
+  const p = normPt(e); state.drag = { x1:p.x, y1:p.y, x2:p.x, y2:p.y };
+});
+canvas.addEventListener("pointermove", e => {
+  if (!state.drag) return; const p = normPt(e); state.drag.x2 = p.x; state.drag.y2 = p.y;
+});
+const endDrag = () => {
+  const d = state.drag; state.drag = null;
+  if (d && Math.hypot(d.x2 - d.x1, d.y2 - d.y1) > 0.02) state.lines.push(d);
+};
+canvas.addEventListener("pointerup", endDrag);
+canvas.addEventListener("pointercancel", endDrag);
+
+/* ---------- Geometry ---------- */
+const W = () => canvas.width, H = () => canvas.height;
+const px = p => ({ x: p.x * W(), y: p.y * H() });
+const mid = (a, b) => ({ x:(a.x + b.x) / 2, y:(a.y + b.y) / 2, v: Math.min(a.v, b.v) });
+function jointAngle(a, b, c){
+  const A = px(a), B = px(b), C = px(c);
+  const v1 = Math.atan2(A.y - B.y, A.x - B.x), v2 = Math.atan2(C.y - B.y, C.x - B.x);
+  let d = Math.abs(v1 - v2) * 180 / Math.PI; if (d > 180) d = 360 - d; return d;
+}
+function tiltFromHorizontal(a, b){
+  const A = px(a), B = px(b);
+  let d = Math.atan2(B.y - A.y, B.x - A.x) * 180 / Math.PI;
+  if (d > 90) d -= 180; if (d < -90) d += 180; return d;
+}
+function spineTilt(lm){
+  const s = px(mid(lm[11], lm[12])), h = px(mid(lm[23], lm[24]));
+  return Math.atan2(Math.abs(s.x - h.x), h.y - s.y) * 180 / Math.PI;
+}
+function headCenter(lm){ return mid(lm[7], lm[8]); }
+function torsoLen(lm){
+  const s = px(mid(lm[11], lm[12])), h = px(mid(lm[23], lm[24]));
+  return Math.hypot(s.x - h.x, s.y - h.y) || 1;
+}
+
+/* ---------- Drawing ---------- */
+const COL = { lead:"#ff8a1f", trail:"#35b8ff", core:"#ffffff", ref:"#f5cb45", bad:"#ff4d3a", line:"#f5cb45" };
+const sc = () => Math.max(W(), H()) / 900;
+
+function seg(a, b, color, w){
+  if (a.v < 0.4 || b.v < 0.4) return;
+  const A = px(a), B = px(b);
+  ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.lineWidth = w + 3 * sc();
+  ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke();
+  ctx.strokeStyle = color; ctx.lineWidth = w;
+  ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke();
+}
+function dot(p, r, color){
+  if (p.v < 0.4) return;
+  const P = px(p);
+  ctx.fillStyle = color; ctx.strokeStyle = "rgba(0,0,0,.6)"; ctx.lineWidth = 2 * sc();
+  ctx.beginPath(); ctx.arc(P.x, P.y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+}
+function label(text, x, y, color = "#fff"){
+  const s = sc();
+  ctx.font = `700 ${Math.round(17 * s)}px "Barlow Condensed","Arial Narrow",sans-serif`;
+  const w = ctx.measureText(text).width + 12 * s, h = 24 * s;
+  ctx.fillStyle = "rgba(0,0,0,.65)";
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(x, y - h / 2, w, h, 6 * s); else ctx.rect(x, y - h / 2, w, h);
+  ctx.fill();
+  ctx.fillStyle = color; ctx.textBaseline = "middle"; ctx.fillText(text, x + 6 * s, y + 1);
+}
+
+function drawSkeleton(lm){
+  const { lead, trail } = side(), s = sc(), w = 4.5 * s;
+  const chain = (S, c) => {
+    seg(lm[S.sh], lm[S.el], c, w); seg(lm[S.el], lm[S.wr], c, w);
+    seg(lm[S.hip], lm[S.kn], c, w); seg(lm[S.kn], lm[S.an], c, w);
+    seg(lm[S.sh], lm[S.hip], c, w);
+  };
+  chain(trail, COL.trail); chain(lead, COL.lead);
+  seg(lm[11], lm[12], COL.core, w); seg(lm[23], lm[24], COL.core, w);
+  // feet
+  [[27,29],[29,31],[27,31],[28,30],[30,32],[28,32]].forEach(([a,b]) => {
+    seg(lm[a], lm[b], (a % 2 === lead.an % 2) ? COL.lead : COL.trail, 3 * s);
+  });
+  // hands
+  [[15,19],[16,20]].forEach(([a,b]) => seg(lm[a], lm[b], (a % 2 === lead.wr % 2) ? COL.lead : COL.trail, 3 * s));
+  // neck + head
+  const sh = mid(lm[11], lm[12]), hc = headCenter(lm);
+  seg(sh, hc, COL.core, 3 * s);
+  if (hc.v > 0.4){
+    const P = px(hc), e1 = px(lm[7]), e2 = px(lm[8]);
+    const r = Math.max(14 * s, Math.hypot(e1.x - e2.x, e1.y - e2.y) * 0.8);
+    ctx.strokeStyle = COL.core; ctx.lineWidth = 3 * s;
+    ctx.beginPath(); ctx.arc(P.x, P.y, r, 0, Math.PI * 2); ctx.stroke();
+  }
+  [11,12,13,14,15,16,23,24,25,26,27,28].forEach(i => dot(lm[i], 5 * s, "#fff"));
+}
+
+function drawAngles(lm){
+  const { lead, trail } = side(), s = sc(), off = 14 * s;
+  const at = (i, txt, c) => { if (lm[i].v < 0.5) return; const P = px(lm[i]); label(txt, P.x + off, P.y, c); };
+  at(lead.el,  Math.round(jointAngle(lm[lead.sh],  lm[lead.el],  lm[lead.wr]))  + "°", COL.lead);
+  at(lead.kn,  Math.round(jointAngle(lm[lead.hip], lm[lead.kn],  lm[lead.an]))  + "°", COL.lead);
+  at(trail.kn, Math.round(jointAngle(lm[trail.hip],lm[trail.kn], lm[trail.an])) + "°", COL.trail);
+  const h = px(mid(lm[23], lm[24]));
+  label("Spine " + Math.round(spineTilt(lm)) + "°", h.x + off, h.y - 30 * s, "#fff");
+}
+
+function drawRefs(idx){
+  const fr = state.frames, a = fr[state.addressIdx], cur = fr[idx], s = sc();
+  if (!a) return;
+  ctx.save();
+  if (state.ov.spine){
+    const S = px(mid(a[11], a[12])), Hh = px(mid(a[23], a[24]));
+    const dx = S.x - Hh.x, dy = S.y - Hh.y;
+    ctx.setLineDash([12 * s, 8 * s]); ctx.strokeStyle = COL.ref; ctx.lineWidth = 3 * s;
+    ctx.beginPath(); ctx.moveTo(Hh.x - dx * 0.4, Hh.y - dy * 0.4); ctx.lineTo(S.x + dx * 0.6, S.y + dy * 0.6); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  if (state.ov.head){
+    const hc = px(headCenter(a)), e1 = px(a[7]), e2 = px(a[8]);
+    const r = Math.max(20 * s, Math.hypot(e1.x - e2.x, e1.y - e2.y) * 1.4);
+    let out = false;
+    if (cur){ const c = px(headCenter(cur)); out = Math.hypot(c.x - hc.x, c.y - hc.y) > r; }
+    ctx.setLineDash([8 * s, 6 * s]); ctx.strokeStyle = out ? COL.bad : COL.ref; ctx.lineWidth = 3 * s;
+    ctx.beginPath(); ctx.arc(hc.x, hc.y, r, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+  }
+  if (state.ov.path){
+    const wr = side().lead.wr;
+    let started = false, n = 0;
+    ctx.lineWidth = 4 * s; ctx.lineJoin = "round"; ctx.lineCap = "round";
+    for (let i = state.addressIdx; i <= idx; i++){
+      const f = fr[i]; if (!f || f[wr].v < 0.3) continue;
+      const P = px(f[wr]);
+      const t = (i - state.addressIdx) / Math.max(1, idx - state.addressIdx);
+      if (started){
+        ctx.strokeStyle = `hsla(${200 - t * 170}, 95%, 60%, ${0.35 + 0.65 * t})`;
+        ctx.lineTo(P.x, P.y); ctx.stroke();
+      }
+      ctx.beginPath(); ctx.moveTo(P.x, P.y); started = true; n++;
+    }
+  }
+  ctx.restore();
+}
+
+function drawLines(){
+  const s = sc(), all = state.drag ? [...state.lines, state.drag] : state.lines;
+  all.forEach(l => {
+    const A = px({ x:l.x1, y:l.y1 }), B = px({ x:l.x2, y:l.y2 });
+    ctx.strokeStyle = "rgba(0,0,0,.5)"; ctx.lineWidth = 6 * s;
+    ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke();
+    ctx.strokeStyle = COL.line; ctx.lineWidth = 3 * s;
+    ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke();
+    [A, B].forEach(P => { ctx.fillStyle = COL.line; ctx.beginPath(); ctx.arc(P.x, P.y, 5 * s, 0, Math.PI * 2); ctx.fill(); });
+    let ang = Math.abs(Math.atan2(B.y - A.y, B.x - A.x) * 180 / Math.PI); if (ang > 90) ang = 180 - ang;
+    label(Math.round(ang) + "°", (A.x + B.x) / 2 + 8 * s, (A.y + B.y) / 2, COL.line);
+  });
+}
+
+/* ---------- Metrics ---------- */
+const METRICS = [
+  { key:"spine",  name:"Spine tilt",   f: lm => spineTilt(lm), unit:"°" },
+  { key:"leadArm",name:"Lead arm",     f: lm => { const L = side().lead; return jointAngle(lm[L.sh], lm[L.el], lm[L.wr]); }, unit:"°" },
+  { key:"leadKn", name:"Lead knee",    f: lm => { const L = side().lead; return jointAngle(lm[L.hip], lm[L.kn], lm[L.an]); }, unit:"°" },
+  { key:"trailKn",name:"Trail knee",   f: lm => { const T = side().trail; return jointAngle(lm[T.hip], lm[T.kn], lm[T.an]); }, unit:"°" },
+  { key:"shTilt", name:"Shoulder tilt",f: lm => tiltFromHorizontal(lm[11], lm[12]), unit:"°" },
+  { key:"hipTilt",name:"Hip tilt",     f: lm => tiltFromHorizontal(lm[23], lm[24]), unit:"°" },
+  { key:"head",   name:"Head movement",rel:true, f: (lm, a) => {
+      const c = px(headCenter(lm)), h = px(headCenter(a)); return Math.hypot(c.x - h.x, c.y - h.y) / torsoLen(a) * 100; }, unit:"%" },
+  { key:"sway",   name:"Hip sway",     rel:true, f: (lm, a) => {
+      const c = px(mid(lm[23], lm[24])), h = px(mid(a[23], a[24])); return (c.x - h.x) / torsoLen(a) * 100; }, unit:"%" }
+];
+function renderMetrics(force){
+  const box = $("metrics");
+  if (!state.analyzed){ box.innerHTML = ""; return; }
+  const idx = currentIdx();
+  if (!force && idx === state.lastIdx) return;
+  state.lastIdx = idx;
+  const lm = state.frames[idx], a = state.frames[state.addressIdx];
+  box.innerHTML = METRICS.map(m => {
+    let v = "–", sub = "", alert = false;
+    if (lm && a){
+      const val = m.f(lm, a);
+      v = Math.round(val) + m.unit;
+      if (m.rel){ sub = "from address"; if (m.key === "head" && val > 15) alert = true; }
+      else sub = "address " + Math.round(m.f(a, a)) + m.unit;
+    } else sub = "no pose on this frame";
+    return `<div class="metric${alert ? " alert" : ""}"><span>${m.name}</span><b>${v}</b><em>${sub}</em></div>`;
+  }).join("");
+}
+
+/* ---------- Main loop ---------- */
+function render(){
+  ctx.clearRect(0, 0, W(), H());
+  let lm = null, idx = 0;
+  if (state.mode === "live") lm = state.liveLm;
+  else if (state.mode === "video" && state.analyzed){
+    idx = currentIdx(); lm = state.frames[idx];
+    drawRefs(idx);
+  }
+  if (lm && state.ov.skeleton) drawSkeleton(lm);
+  if (lm && state.ov.angles) drawAngles(lm);
+  if (state.mode === "video") drawLines();
+}
+function loop(){
+  if (state.mode === "live" && landmarker && video.readyState >= 2){
+    try {
+      const r = landmarker.detectForVideo(video, nextTs(performance.now()));
+      const p = r.landmarks && r.landmarks[0];
+      state.liveLm = p ? p.map(q => ({ x:q.x, y:q.y, v:q.visibility ?? 1 })) : null;
+    } catch (e) {}
+    if (recorder && recorder.state === "recording") $("recDot").textContent = "REC " + ((performance.now() - recStart) / 1000).toFixed(1) + " s";
+  }
+  if (state.mode !== "idle") render();
+  if (state.mode === "video"){
+    if (!scrubbing) $("scrub").value = video.currentTime;
+    const fr = state.analyzed ? ` · frame ${currentIdx() + 1}/${state.frames.length}` : "";
+    $("readout").textContent = video.currentTime.toFixed(2) + " s" + fr;
+    renderMetrics(false);
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+/* ---------- Live camera ---------- */
+$("liveBtn").onclick = startLive;
+async function startLive(){
+  if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia)
+    return toast("Camera needs this page opened in Safari from an https:// link, not from Files or a preview.", 6000);
+  if (window.top !== window.self)
+    return toast("This page is inside a preview, which blocks the camera. Open its link directly in Safari.", 6000);
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode:"environment", width:{ ideal:1280 }, height:{ ideal:720 }, frameRate:{ ideal:60 } }, audio:false
+    });
+  } catch (e) {
+    const why = {
+      NotAllowedError: "Camera permission was denied. Tap aA in the address bar → Website Settings → Camera → Allow, then reload.",
+      NotFoundError: "No camera was found on this device.",
+      NotReadableError: "The camera is busy in another app. Close it and try again.",
+      OverconstrainedError: "The camera doesn’t support the requested settings."
+    }[e.name] || `Camera error: ${e.name || e.message}`;
+    return toast(why, 7000);
+  }
+  video.pause(); video.removeAttribute("src"); video.load();
+  video.srcObject = stream; video.muted = true;
+  video.onloadedmetadata = () => { sizeStage(); };
+  try { await video.play(); } catch (e) {}
+  state.mode = "live"; state.liveLm = null; updateUI();
+  if (!landmarker){
+    toast("Loading pose model…", 4000);
+    try { await getLandmarker(); } catch (e) { toast("Couldn’t load the pose model. Check your connection."); }
+  }
+}
+function stopLive(){
+  if (recorder && recorder.state !== "inactive") { discardRecording = true; recorder.stop(); }
+  if (stream){ stream.getTracks().forEach(t => t.stop()); stream = null; }
+  $("recDot").style.display = "none";
+  $("recBtn").textContent = "Start recording";
+}
+$("exitLiveBtn").onclick = () => {
+  stopLive(); video.srcObject = null; state.mode = "idle"; state.liveLm = null;
+  $("stage").style.display = "none"; $("empty").style.display = "block"; updateUI();
+};
+$("recBtn").onclick = () => {
+  if (!stream) return;
+  if (!recorder || recorder.state === "inactive"){
+    if (!window.MediaRecorder) return toast("Recording isn’t supported here. Film in the Camera app and upload instead.");
+    const types = ["video/mp4", "video/webm;codecs=vp9", "video/webm"];
+    const mime = types.find(t => MediaRecorder.isTypeSupported(t)) || "";
+    chunks = []; discardRecording = false;
+    recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+    recorder.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+    recorder.onstop = () => {
+      $("recDot").style.display = "none";
+      if (discardRecording || !chunks.length) return;
+      const blob = new Blob(chunks, { type: recorder.mimeType || "video/mp4" });
+      loadVideo(URL.createObjectURL(blob));
+      toast("Recorded. Tap Analyze swing.");
+    };
+    recorder.start(250); recStart = performance.now();
+    $("recDot").style.display = "flex";
+    $("recBtn").textContent = "Stop recording";
+  } else {
+    recorder.stop();
+    $("recBtn").textContent = "Start recording";
+  }
+};
+
+/* ---------- Save frame ---------- */
+$("saveBtn").onclick = () => {
+  const off = document.createElement("canvas");
+  off.width = canvas.width; off.height = canvas.height;
+  const c = off.getContext("2d");
+  c.drawImage(video, 0, 0, off.width, off.height);
+  c.drawImage(canvas, 0, 0);
+  off.toBlob(async blob => {
+    if (!blob) return toast("Couldn’t save this frame.");
+    const file = new File([blob], `swing-${Date.now()}.png`, { type:"image/png" });
+    if (navigator.canShare && navigator.canShare({ files:[file] })){
+      try { await navigator.share({ files:[file], title:"Swing frame" }); return; }
+      catch (e) { if (e.name === "AbortError") return; }
+    }
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = file.name; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }, "image/png");
+};
+</script>
+</body>
+</html>
